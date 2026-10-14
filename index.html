@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Github图床</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+body{padding:20px;background:#161b22;color:#f0f6fc}
+.container{max-width:600px;margin:0 auto}
+h2{margin-bottom:16px}
+input,textarea,button{width:100%;padding:12px;margin:8px 0;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#fff;font-size:16px}
+button{background:#238636;border:none;cursor:pointer;font-weight:bold}
+#drop{border:2px dashed #30363d;padding:40px;text-align:center;border-radius:8px;margin:10px 0}
+#drop.active{border-color:#58a6ff;background:#1f2937}
+#result{margin-top:10px;word-break:break-all;color:#79c0ff}
+</style>
+</head>
+<body>
+<div class="container">
+<h2>GitHub图床上传</h2>
+<input type="text" id="username" placeholder="Github用户名" value="Fanrain0376">
+<input type="text" id="repo" placeholder="仓库名" value="my-image-bed">
+<input type="text" id="token" placeholder="Personal Token密钥">
+<div id="drop">点击或者拖图片到这里上传</div>
+<input type="file" id="file" accept="image/*" hidden>
+<button onclick="upload()">上传图片</button>
+<div id="result"></div>
+</div>
+<script>
+const userIn=document.getElementById('username');
+const repoIn=document.getElementById('repo');
+const tokenIn=document.getElementById('token');
+const drop=document.getElementById('drop');
+const fileInput=document.getElementById('file');
+const result=document.getElementById('result');
+drop.onclick=()=>fileInput.click();
+drop.ondragover=(e)=>{e.preventDefault();drop.classList.add('active')};
+drop.ondragleave=()=>drop.classList.remove('active');
+drop.ondrop=(e)=>{
+e.preventDefault();drop.classList.remove('active');
+if(e.dataTransfer.files.length)fileInput.files=e.dataTransfer.files;
+}
+async function upload(){
+const file=fileInput.files[0];
+if(!file)return alert("请选择图片");
+const username=userIn.value.trim();
+const repo=repoIn.value.trim();
+const token=tokenIn.value.trim();
+if(!username||!repo||!token)return alert("用户名、仓库名、Token不能为空");
+result.innerText="正在上传...";
+const reader=new FileReader();
+reader.onload=async function(){
+const base64=reader.result.split(',')[1];
+const path=Date.now()+"_"+file.name;
+const res=await fetch(`https://api.github.com/repos/${username}/${repo}/contents/${path}`,{
+method:"PUT",
+headers:{"Authorization":`token ${token}`,"Content-Type":"application/json"},
+body:JSON.stringify({message:"upload image",content:base64})
+})
+const data=await res.json();
+if(res.ok){
+const url=`https://${username}.github.io/${repo}/${path}`;
+result.innerText="上传成功！链接："+url;
+}else{
+result.innerText="失败："+data.message;
+}
+}
+reader.readAsDataURL(file);
+}
+</script>
+</body>
+</html>
